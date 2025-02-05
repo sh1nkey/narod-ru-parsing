@@ -15,10 +15,10 @@ services:
 
   mygoapp:
     build:
-      context: .  # Укажите путь к папке, где находится ваш Dockerfile
-      dockerfile: Dockerfile  # Убедитесь, что имя Dockerfile указано правильно
+      context: .  
+      dockerfile: Dockerfile  
     ports:
-      - "8080:8080"  # Измените на нужный порт вашего приложения
+      - "8080:8080"
     depends_on:
       - postgres
     
