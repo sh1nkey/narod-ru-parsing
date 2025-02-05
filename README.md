@@ -5,3 +5,13 @@
 2) бэкенд позволит это хранилище просматривать, давать описание сайтам, и помечать сайты как пустые
 
 некоторые шутки ещё дорабатываю, когда можно будет использовать - скажу :)
+
+что он щас может:
+
+/api/v1/narod/ GET limit offset - выдавать все записи
+
+/api/v1/narod/save POST {url: httpsUrl } - добавить url в БД
+
+/api/v1/narod/set-description PATCH {id: int, description: string} - добавить описание для записи
+
+/api/v1/narod/mark-empty PATCH {id: int, description: string} - пометить запись как пустую
