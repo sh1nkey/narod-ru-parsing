@@ -1,4 +1,4 @@
-version: '3'
+
 services:
   postgres:
     image: postgres
@@ -13,12 +13,62 @@ services:
       - ./.pg-vol:/var/lib/postgresql/data
 
 
-  mygoapp:
+  db-backend:
     build:
-      context: .  # Укажите путь к папке, где находится ваш Dockerfile
-      dockerfile: Dockerfile  # Убедитесь, что имя Dockerfile указано правильно
+      context: ./db-backend  
+      dockerfile: Dockerfile  
     ports:
-      - "8080:8080"  # Измените на нужный порт вашего приложения
+      - "8080:8080"  
     depends_on:
       - postgres
+      - kafka
+
+
+  html-parser:
+    build:
+      context: ./html-parser  
+      dockerfile: Dockerfile 
+    depends_on:
+      - kafka
     
+
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+    tmpfs: "/datalog"
+
+  kafka:
+    image: wurstmeister/kafka:latest
+    container_name: makafka
+    restart: always
+    environment:
+      KAFKA_LISTENERS: LISTENER_DOCKER_INTERNAL://0.0.0.0:19092,LISTENER_DOCKER_EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_BROKER_ID: 1
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    volumes:
+      - ./.kafka-data:/var/lib/kafka/data
+    depends_on:
+      - zookeeper
+
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"      
+    volumes:
+      - ./.grafana-storage:/var/lib/grafana 
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin 
+    # depends_on:
+    #   - prometheus               # Зависимость от Prometheus, если требуется

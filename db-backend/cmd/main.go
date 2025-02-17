@@ -36,8 +36,8 @@ func main() {
 	ur := integrepo.NewPostgresRepo(dbPool)
 
 	integService := parsenarod.NewService(ur)
-
-	r := api.ConfigureRouter(cfg, integService)
+	time.Sleep(30 * time.Second)
+	r := api.ConfigureRouter(cfg, integService,  "makafka:9092")
 
 	kfk.ConfigKfk(integService, "makafka:9092")
 

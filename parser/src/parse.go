@@ -1,12 +1,15 @@
 package main
+
 import (
+	"io"
 	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 	"unsafe"
-	"github.com/rs/zerolog/log"
+
 	"github.com/corpix/uarand"
+	"github.com/rs/zerolog/log"
 )
 
 
@@ -21,6 +24,8 @@ var src = rand.NewSource(time.Now().UnixNano())
 
 
 func randStringBytesMaskImprSrcUnsafe(n int, wg *sync.WaitGroup, chWeb chan string, check Checker) {
+	log.Info().Msg("Запускаем генерацию случайных строк")
+	
 	for i := 0; i <= 1_000; i++ {
 		wg.Add(1)
 		time.Sleep(300 * time.Millisecond)
@@ -43,10 +48,11 @@ func randStringBytesMaskImprSrcUnsafe(n int, wg *sync.WaitGroup, chWeb chan stri
 
 
 func checkIfWebPageExist(chIn chan string, wg *sync.WaitGroup, save Saver) {
+	log.Info().Msg("Запускаем проверку существования веб-страниц")
 	for {
 		text := <- chIn
+		log.Info().Msgf("забрали текст %s", text)
 
-		log.Printf("забрали текст %s", text)
 
 		time.Sleep(300 * time.Millisecond)
 		url := "https://" + text + ".narod.ru" // Замените на нужный URL
@@ -61,21 +67,26 @@ func checkIfWebPageExist(chIn chan string, wg *sync.WaitGroup, save Saver) {
 			log.Err(err).Msg("Ошибка создания GET-запроса")
         }
         req.Header.Set("User-Agent", uarand.GetRandom())
+
         resp, err := client.Do(req)
         if err != nil {
 			log.Err(err).Msg("Ошибка выполнения GET-запроса")
         }
-
 		time.Sleep(150 * time.Millisecond)
-		if err != nil {
-			log.Err(err).Msg("Ошибка выполнения GET-запроса")
-		}
-		// Проверяем статус-код ответа
 		
 		if resp.StatusCode == http.StatusOK {
-			log.Printf("код: %d, на текст %s запрос успешно\n", resp.StatusCode, text)
+			html, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Err(err).Msg("Ошибка чтения тела ответа")
+				return
+			}
+			htmlData := string(html)
+			go save(text, &htmlData, wg)
+
+			log.Info().Msgf("код: %d, на текст %s запрос успешно\n", resp.StatusCode, text)
+			//log.Info().Msgf("HTML-содержаие: %s", string(html))
+
 			resp.Body.Close() 
-			go save(text, wg)
 		} else {
 			time.Sleep(150 * time.Millisecond)
 			log.Printf("Получен код состояния: %d, на текст %s запрос не удалось выполнить успешно\n", resp.StatusCode, text)

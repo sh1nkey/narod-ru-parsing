@@ -8,7 +8,7 @@ import (
 
 // Topics
 const (
-	FailureTopic = "failure"
+	//FailureTopic = "failure"
 	// RequestedSaveUrlTopic   = "requested_save_url"
 	// RequestedMarkEmptyTopic = "requested_mark_empty"
 	// RequestedSetDescTopic   = "requested_set_description"
@@ -51,14 +51,14 @@ type DbQueryId = uint64
 
 type SavedUrlEventDTO struct {
 	baseEventDTO
-	HtmlContent string
-	Id          DbQueryId
+	HtmlContent string `json:"html_content"`
+	Url          string `json:"url"`
 }
 
 type HtmlParsedTopicEventDTO struct {
 	baseEventDTO
-	Id            DbQueryId
-	ParsedContent string
+	Url           string `json:"url"`
+	ParsedContent string `json:"parsed_content"`
 }
 
 type Marshalable interface {

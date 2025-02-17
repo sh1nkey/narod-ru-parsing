@@ -3,14 +3,14 @@ package main
 import (
 	"html-parser/kfk"
 	"sync"
+
 	"github.com/rs/zerolog/log"
 )
 
-const host = "localhost:9092"
+const host = "makafka:9092"
 
 func main() {
 	var wg sync.WaitGroup
-
 	wg.Add(1)
 	group := kfk.ConfigKfk(CleanText, kfk.ServeHtmlParsed, host)
 	defer func() {

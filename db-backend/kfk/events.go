@@ -35,7 +35,7 @@ type BaseEventDTO struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
-func (be *BaseEventDTO) fillBaseData() {
+func (be *BaseEventDTO) FillBaseData() {
 	be.EventUuid = uuid.New()
 	be.CreatedAt = time.Now()
 }
