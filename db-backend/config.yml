@@ -1,0 +1,23 @@
+port: 8080
+profile: local
+
+config:
+  source: local
+  print: false
+
+log:
+  level: debug
+  structured: false
+
+db:
+  name: go-micro-example-db
+  host: data-sender-postgres-1
+  port: 5432
+  user: postgres
+  pass: postgres
+  clean: false
+  logLevel: warn
+  pool:
+    minSize: 1
+    maxSize: 3
+
