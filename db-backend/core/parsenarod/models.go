@@ -21,18 +21,27 @@ type Url struct {
 type UrlReqDTO struct {
 	Url string `json:"url"`
 }
-
 func (cur *UrlReqDTO) Bind(r *http.Request) error {
-	return cur.validate()
+	return validate(cur.Url)
 }
 
-func (cur *UrlReqDTO) validate() error {
-	_, err := url.ParseRequestURI(cur.Url)
+
+type UrlHtmlReqDTO struct {
+	Url string `json:"url"`
+	Html string `json:"html"`
+}
+func (cur *UrlHtmlReqDTO) Bind(r *http.Request) error {
+	return validate(cur.Url)
+}
+
+
+func validate(givenUrl string) error {
+	_, err := url.ParseRequestURI(givenUrl)
 	if err != nil {
 		return errors.New("поданная ссылка не является https url-ом")
 	}
 
-	if !strings.Contains(cur.Url, "narod.ru") {
+	if !strings.Contains(givenUrl, "narod.ru") {
 		return errors.New("поданная ссылка не является ссылкой на сайт narod.ru")
 	}
 	return nil

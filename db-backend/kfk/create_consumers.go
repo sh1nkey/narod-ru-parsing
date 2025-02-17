@@ -4,9 +4,7 @@ import (
 	"context"
 	"data-sender/core"
 	"data-sender/core/parsenarod"
-	"fmt"
 	"time"
-
 	"github.com/IBM/sarama"
 	"github.com/rs/zerolog/log"
 )
@@ -27,7 +25,7 @@ type ConsumerProducerConfig struct {
 }
 
 func CreateProducerConsumer(p *ConsumerProducerConfig) sarama.ConsumerGroup {
-	group, err := createConsGroup(p.Host)
+	group, err := createConsGroup(p.Host, p.ConsumerTopicName)
 	if err != nil {
 		return nil
 	}
@@ -37,15 +35,15 @@ func CreateProducerConsumer(p *ConsumerProducerConfig) sarama.ConsumerGroup {
 		}
 	}()
 
-	producer, err := setupProducer(p.Host)
+	producer, err := SetupProducer(p.Host)
 	if err != nil {
 		log.Err(err).Msg("Не удалось создать продюссера")
 	}
 
 	handler := consumerHandler{
-		service:       p.Service,
-		server:        p.Server,
-		producer:      producer,
+		service:  p.Service,
+		server:   p.Server,
+		producer: producer,
 	}
 
 	go consumeGroup(&group, p.ConsumerTopicName, &handler)
@@ -54,21 +52,21 @@ func CreateProducerConsumer(p *ConsumerProducerConfig) sarama.ConsumerGroup {
 	return group
 }
 
-func createConsGroup(host string) (sarama.ConsumerGroup, error) {
+func createConsGroup(host string, topicName string) (sarama.ConsumerGroup, error) {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
 	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
 
-	log.Info().Msg(fmt.Sprintf(`Создаём consumer group с host=%s`, host))
+	log.Info().Msgf(`Создаём consumer group с host=%s`, host)
 
 	brokers := []string{host}
-	master, err := sarama.NewConsumerGroup(brokers, "html_parser-1", config)
+	master, err := sarama.NewConsumerGroup(brokers, topicName + "-0", config)
 	if err != nil {
 		log.Error().Err(err).Msg("Не смогли создать consumer-group")
 		return nil, err
 	}
 
-	log.Info().Msg("Master-консюмер успешно создался")
+	log.Info().Msg("Группа успешно создалась")
 
 	return master, nil
 }
@@ -78,20 +76,20 @@ func consumeGroup(group *sarama.ConsumerGroup, topicName string, handler sarama.
 
 	ctx := context.Background()
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Info().Msgf("Завершение работы с топиком %s", topicName)
-				return
-			default:
-				err := (*group).Consume(ctx, []string{topicName}, handler)
-				if err != nil {
-					log.Err(err).Msgf("Ошибка при обработке топика %s", topicName)
-					time.Sleep(2 * time.Second)
-				}
-			}
-		}
-	}()
+        for {
+            select {
+            case <-ctx.Done():
+                log.Info().Msgf("Завершение работы с топиком %s", topicName)
+                return
+            default:
+                err := (*group).Consume(ctx, []string{topicName}, handler)
+                if err != nil {
+                    log.Err(err).Msgf("Ошибка при обработке топика %s", topicName)
+                    time.Sleep(2 * time.Second)
+                }
+            }
+        }
+    }()
 	log.Info().Msgf("Подключение к топику %s завершено", topicName)
 }
 

@@ -4,11 +4,16 @@ import (
 	"context"
 	"data-sender/core"
 	"data-sender/core/parsenarod"
+	"data-sender/kfk"
+	"os"
+
 	"fmt"
 	"net/http"
-	
+
+	"github.com/IBM/sarama"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -25,10 +30,14 @@ const (
 
 type NarodParseApi struct {
 	service NarodParseService
+	kfkProd *sarama.AsyncProducer
 }
 
-func NewNarodParseApi(service NarodParseService) *NarodParseApi {
-	return &NarodParseApi{service: service}
+func NewNarodParseApi(service NarodParseService, kfkProd *sarama.AsyncProducer) *NarodParseApi {
+	return &NarodParseApi{
+		service: service,
+		kfkProd: kfkProd,
+	}
 }
 
 func (ra *NarodParseApi) ConfigureRouter(r chi.Router) {
@@ -41,22 +50,31 @@ func (ra *NarodParseApi) ConfigureRouter(r chi.Router) {
 }
 
 func (a *NarodParseApi) Create(w http.ResponseWriter, r *http.Request) {
-	data := &parsenarod.UrlReqDTO{}
+	data := &parsenarod.UrlHtmlReqDTO{}
 	if err := render.Bind(r, data); err != nil {
 		log.Error().Err(err).Msg("Failed to bind request data")
 		Render(w, r, ErrInvalidRequest(err))
 		return
 	}
-
-	err := a.service.Create(r.Context(), data)
-	if err != nil {
-		log.Error().Err(err).Interface("reservationRequest", data).Msg("failed to reserve")
-		Render(w, r, ErrInternalServer)
-		return
+	
+	event := kfk.RequestedSaveUrlEventDTO{
+		Url: data.Url, 
+		HtmlContent: data.Html,
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	log.Info().Msg("успешно добавлена запись с URL " + data.Url)
+	event.FillBaseData()
+	event.BaseEventDTO.CorrelationUuid = uuid.New()
+
+	sigCh := make(chan *os.Signal)
+	go kfk.ProduceMessage(
+		a.kfkProd,
+		kfk.RequestedSaveUrlTopic, 
+		&event, 
+		&sigCh,
+	)
+	
+	w.WriteHeader(http.StatusAccepted)
+	log.Info().Msgf("запись с url %s успешно отправлена в Kafka", data.Url)
 }
 
 func (ra *NarodParseApi) List(w http.ResponseWriter, r *http.Request) {
@@ -81,8 +99,19 @@ func (a *NarodParseApi) MarkAsEmpty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	event := &kfk.RequestedMarkEmptyEventDTO{Url: data.Url}
+	event.FillBaseData()
+	event.BaseEventDTO.CorrelationUuid = uuid.New()
 	log.Info().Msgf("Получили запрос с url=%s", data.Url)
-
+	
+	sigCh := make(chan *os.Signal)
+	go kfk.ProduceMessage(
+		a.kfkProd,
+		kfk.RequestedMarkEmptyTopic,
+		event,
+		&sigCh,
+	)
+	
 	error := a.service.MarkAsEmpty(r.Context(), data.Url)
 	if error != nil {
 		log.Error().Err(error).Interface("MarkAsEmptyRequest", data).Msg("failed to reserve")
@@ -101,6 +130,19 @@ func (a *NarodParseApi) SetDescription(w http.ResponseWriter, r *http.Request) {
 		Render(w, r, ErrInvalidRequest(err))
 		return
 	}
+
+	event := &kfk.RequestedSetDescEventDTO{Url: data.Url, Description: data.Description}
+	event.FillBaseData()
+	event.BaseEventDTO.CorrelationUuid = uuid.New()
+	log.Info().Msgf("Получили запрос с url=%s", data.Url)
+	
+	sigCh := make(chan *os.Signal)
+	go kfk.ProduceMessage(
+		a.kfkProd,
+		kfk.RequestedSetDescEvent,
+		event,
+		&sigCh,
+	)
 
 	err := a.service.SetDescription(r.Context(), data.Url, data.Description)
 	if err != nil {

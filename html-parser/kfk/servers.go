@@ -2,7 +2,6 @@ package kfk
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/IBM/sarama"
@@ -22,7 +21,8 @@ func ServeHtmlParsed(p *ServerParams) {
 		log.Err(err).Msg("Ошибка при десериализации сообщения, event: ServeRequestedSaveUrl")
 		return
 	}
-	log.Info().Msg("Десериализовали задачу")
+	log.Info().Msgf("Десериализовали задачу, вот текст: %s", event.Value)
+	
 	cleanedText, err := p.service(&data.HtmlContent)
 	if err != nil {
 		log.Err(err).Msg("Ошибка при очистке HTML-страницы, event: ServeHtmlParsed")
@@ -32,20 +32,21 @@ func ServeHtmlParsed(p *ServerParams) {
 	log.Info().Msgf("Очистили текст. Результат: %s", cleanedText)
 
 	newData := &HtmlParsedTopicEventDTO{
-		Id:            data.Id,
+		Url:            data.Url,
 		ParsedContent: cleanedText,
 		baseEventDTO: baseEventDTO{
 			CorrelationUuid: data.CorrelationUuid,
 		},
 	}
 	newData.FillBaseData()
+
 	if p.sess == nil {
 		log.Error().Msgf("Почему-то сессия ConsumerGroup оказалась пустой...")
 		return
 	}
+
 	(*p.sess).MarkMessage(event, "")
 	log.Info().Msg("Пометили задачу как выполненную")
-	// отправить дальше
 
 	sigCh := make(chan *os.Signal)
 	go ProduceMessage(
@@ -54,7 +55,6 @@ func ServeHtmlParsed(p *ServerParams) {
 		newData,
 		&sigCh,
 	)
-	// TODO отправить дальше
 }
 
 type ServerParams struct {
@@ -79,7 +79,7 @@ func (h *serveHtmlParsedHandler) Cleanup(_ sarama.ConsumerGroupSession) error { 
 
 func (h *serveHtmlParsedHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		log.Info().Msg(fmt.Sprintf(`Message topic:%q partition:%d offset:%d\n`, msg.Topic, msg.Partition, msg.Offset))
+		log.Info().Msgf(`Message topic:%q partition:%d offset:%d value:%s`, msg.Topic, msg.Partition, msg.Offset, msg.Value)
 
 		p := ServerParams{
 			service: h.service,

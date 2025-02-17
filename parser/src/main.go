@@ -2,18 +2,20 @@ package main
 
 import (
 	"sync"
-	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type Configuration struct {
 	saver  Saver
-	reader Checker
+	checker Checker
 }
 
 func main() {
+	log.Info().Msg("Начинаем работу")
 	conf := Configuration{
-		saver: writeToFile,
-		reader: checkIfStrInFile,
+		saver: writeToDb,
+		checker: checkInDb,
 	}
 
 	var wg sync.WaitGroup
@@ -21,11 +23,11 @@ func main() {
 
 	wg.Add(1)
 	for i := 0; i <= 10; i++ {
-		time.Sleep(1 * time.Second)
-		go randStringBytesMaskImprSrcUnsafe(3, &wg, chWeb, conf.reader)
+		go randStringBytesMaskImprSrcUnsafe(3, &wg, chWeb, conf.checker)
 	}
 	wg.Add(1)
 	go checkIfWebPageExist(chWeb, &wg, conf.saver)
 
+	log.Info().Msg("Запустили проверку существования веб-страниц")
 	wg.Wait()
 }

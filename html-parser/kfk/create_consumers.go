@@ -2,6 +2,7 @@ package kfk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,6 +28,8 @@ type ConsumerProducerConfig struct {
 
 
 func CreateProducerConsumer(p *ConsumerProducerConfig) sarama.ConsumerGroup {
+    log.Info().Msg("Начинаем запускать Kafka-consumer-ы")
+
     group, err := createConsGroup(p.Host)
     if err != nil {
         return nil
@@ -58,21 +61,39 @@ func CreateProducerConsumer(p *ConsumerProducerConfig) sarama.ConsumerGroup {
 
 func createConsGroup(host string) (sarama.ConsumerGroup, error) {
     config := sarama.NewConfig()
+
     config.Consumer.Return.Errors = true
     config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+    config.Net.DialTimeout = 1 * time.Minute
 
-    log.Info().Msg(fmt.Sprintf(`Создаём consumer group с host=%s`, host))
+    log.Info().Msgf(`Создаём consumer group с host=%s`, host)
 
     brokers := []string{host}
-    master, err := sarama.NewConsumerGroup(brokers, "html_parser-1", config)
-    if err != nil {
-        log.Error().Err(err).Msg("Не смогли создать consumer-group")
-        return nil, err 
+
+    var master sarama.ConsumerGroup
+    var err error
+
+    // Цикл для повторного создания consumer group
+    for attempt := 0; attempt < 10; attempt++ {
+        master, err = sarama.NewConsumerGroup(brokers, "html_parser-0", config)
+        if err == nil {
+            log.Info().Msg("Master-консюмер успешно создался")
+            return master, nil // Успешное создание, возвращаем master
+        }
+
+        // Проверяем, что это ошибка, связанная с недоступностью брокеров
+        if errors.Is(err, sarama.ErrOutOfBrokers) || err.Error() == "kafka: client has run out of available brokers to talk to" {
+            log.Error().Err(err).Msg("Не смогли создать consumer-group. Попытка подключения...")
+        } else {
+            log.Error().Err(err).Msg("Не смогли создать consumer group по другой причине.")
+            return nil, err // Если это другая ошибка, выходим
+        }
+
+        // Ждем перед следующей попыткой
+        time.Sleep(10 * time.Second)
     }
 
-    log.Info().Msg("Master-консюмер успешно создался")
-
-    return master, nil 
+    return nil, fmt.Errorf("не удалось создать consumer group после %d попыток: %w", 10, err)
 }
 
 func consumeGroup(group *sarama.ConsumerGroup, topicName string, handler sarama.ConsumerGroupHandler) {

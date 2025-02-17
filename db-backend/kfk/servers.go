@@ -51,6 +51,8 @@ func (h *consumerHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim s
 // func ServeFailure(service KfkService, producer *sarama.AsyncProducer, event *sarama.ConsumerMessage, signalsProducer *chan os.Signal) {}
 
 func ServeRequestedSaveUrl(p *ServerParams) {
+	log.Info().Msg("Начинаем обработку сообщения, event: ServeRequestedSaveUrl")
+	
 	var data RequestedSaveUrlEventDTO
 	if err := json.Unmarshal(p.event.Value, &data); err != nil {
 		log.Err(err).Msg("Ошибка при десериализации сообщения, event: ServeRequestedSaveUrl")
@@ -75,7 +77,7 @@ func ServeRequestedSaveUrl(p *ServerParams) {
 	go ProduceMessage(
 		p.producer,
 		SavedUrlEvent,
-		sendData,
+		&sendData,
 		&sigCh,
 	)
 }

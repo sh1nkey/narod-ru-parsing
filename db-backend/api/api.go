@@ -3,12 +3,14 @@ package api
 import (
 	"net/http"
 
+	"data-sender/config"
+	"data-sender/kfk"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
-	"data-sender/config"
 )
 
 
@@ -22,7 +24,7 @@ const (
 
 
 
-func ConfigureRouter(cfg *config.Config, integServ NarodParseService) chi.Router {
+func ConfigureRouter(cfg *config.Config, integServ NarodParseService, host string) chi.Router {
 	log.Info().Msg("configuring router...")
 	r := chi.NewRouter()
 
@@ -48,8 +50,13 @@ func ConfigureRouter(cfg *config.Config, integServ NarodParseService) chi.Router
 		},
 	)
 
+	producer, err := kfk.SetupProducer(host)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Не удалось создать продюссера")
+	}
+
 	r.Route(ApiPath, func(r chi.Router) {
-		r.Route(NarodParsePath, NewNarodParseApi(integServ).ConfigureRouter)
+		r.Route(NarodParsePath, NewNarodParseApi(integServ, producer).ConfigureRouter)
 	})
 
 	return r
