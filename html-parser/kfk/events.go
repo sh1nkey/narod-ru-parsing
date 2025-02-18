@@ -30,9 +30,9 @@ const (
 
 // Event Schemas
 type baseEventDTO struct {
-	EventUuid       uuid.UUID
-	CorrelationUuid uuid.UUID
-	CreatedAt       time.Time
+	EventUuid       uuid.UUID `json:"event_uuid"`
+	CorrelationUuid uuid.UUID `json:"correlation_uuid"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 func (be *baseEventDTO) FillBaseData() {
