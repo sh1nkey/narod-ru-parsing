@@ -37,9 +37,9 @@ func main() {
 
 	integService := parsenarod.NewService(ur)
 	time.Sleep(30 * time.Second)
-	r := api.ConfigureRouter(cfg, integService,  "makafka:9092")
+	r := api.ConfigureRouter(cfg, integService,  "makafka:9093")
 
-	kfk.ConfigKfk(integService, "makafka:9092")
+	kfk.ConfigKfk(integService, "makafka:9093")
 
 
 	log.Info().Str("port", cfg.Port.Value).Int64("startTimeMs", time.Since(start).Milliseconds()).Msg("listening")

@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const host = "makafka:9092"
+const host = "makafka:9093"
 
 func main() {
 	var wg sync.WaitGroup
