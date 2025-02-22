@@ -58,7 +58,7 @@ func WriteToDb(url string, html *string, host string) {
 	}
 	
 	if resp.StatusCode == http.StatusAccepted  {
-		log.Info().Msgf("код: %d, на текст %s запрос успешно\n", resp.StatusCode, url)
+		log.Info().Msgf("Добавление в БД. %s %s", resp.StatusCode, url)
 		resp.Body.Close() 
 	} else {
 		log.Info().Msgf("Получен код состояния: %d, на текст %s запрос не удалось выполнить успешно\n", resp.StatusCode, url)

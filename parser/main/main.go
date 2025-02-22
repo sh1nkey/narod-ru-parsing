@@ -19,11 +19,13 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < 10; i++{
+	log.Info().Msg("Запустили проверку существования веб-страниц")
+
+	for i := 1; i < 10; i++{
 		go code.RandStringBytesMaskImprSrcUnsafe(i, &conf)
 	}
-
+	
 	wg.Add(1)
-	log.Info().Msg("Запустили проверку существования веб-страниц")
 	wg.Wait()
+
 }

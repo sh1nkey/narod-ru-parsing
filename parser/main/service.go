@@ -1,6 +1,8 @@
 package main
 
-import "parser/interfaces"
+import (
+	"parser/interfaces"
+)
 
 type checkParams struct {
 	checker     interfaces.Checker
@@ -23,9 +25,9 @@ func (c *checkParams) Parse(text string) {
 }
 
 func (c *checkParams) GetCheckHostUrl() string {
-	return "http://" + c.hostChecker + ":8083/api/v1/check"
+	return "http://" + c.hostChecker + ":8083/api/v1/check/save"
 }
 
 func (c *checkParams) GetSaveHostUrl() string {
-	return "http://" + c.hostWriter + ":8080/api/v1/check"
+	return "http://" + c.hostWriter + ":8080/api/v1/narod/save"
 }

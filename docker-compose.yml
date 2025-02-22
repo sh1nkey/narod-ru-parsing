@@ -1,35 +1,62 @@
 
 services:
-  postgres:
-    image: postgres
-    hostname: postgres
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: go-micro-example-db
-    volumes:
-      - ./.pg-vol:/var/lib/postgresql/data
+  # postgres:
+  #   image: postgres
+  #   hostname: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: go-micro-example-db
+  #   volumes:
+  #     - ./.pg-vol:/var/lib/postgresql/data
 
 
-  db-backend:
+  # db-backend:
+  #   build:
+  #     context: ./db-backend  
+  #     dockerfile: Dockerfile  
+  #   ports:
+  #     - "8080:8080"  
+  #   depends_on:
+  #     - postgres
+  #     - kafka
+
+  letter-checker:
     build:
-      context: ./db-backend  
+      context: ./letter-checker
       dockerfile: Dockerfile  
     ports:
-      - "8080:8080"  
+      - "8083:8080"  
     depends_on:
-      - postgres
-      - kafka
+      - cassandra
 
 
-  html-parser:
-    build:
-      context: ./html-parser  
-      dockerfile: Dockerfile 
-    depends_on:
-      - kafka
+
+  cassandra:
+    image: cassandra:latest  
+    container_name: cass
+    ports:
+      - "9042:9042"  # Порт для CQL (Cassandra Query Language)
+      - "7000:7000"  # Порт для межузлового общения (по умолчанию)
+      - "7001:7001"  # Защищённый порт для межузлового общения (SSL)
+    volumes:
+      - ./.cassandra_data:/var/lib/cassandra  # Для постоянных данных
+    environment:
+      CASSANDRA_CLUSTER_NAME: "MyCassandraCluster"  # Имя кластера
+      CASSANDRA_SEEDS: "cassandra"  # Узел семян (можно настроить для кластеров)
+      CASSANDRA_RACK: "rack1"  # Рак
+      CASSANDRA_DC: "dc1"  # Цепочка репликации
+
+
+
+  # html-parser:
+  #   build:
+  #     context: ./html-parser  
+  #     dockerfile: Dockerfile 
+  #   depends_on:
+  #     - kafka
 
 
   # ai-shortener:
@@ -41,62 +68,37 @@ services:
   #     - kafka
     
 
-  zookeeper:
-    image: wurstmeister/zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-    ports:
-      - "2181:2181"
-    tmpfs: "/datalog"
+  # zookeeper:
+  #   image: wurstmeister/zookeeper:latest
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #   ports:
+  #     - "2181:2181"
+  #   tmpfs: "/datalog"
+
 
   # kafka:
   #   image: wurstmeister/kafka:latest
   #   container_name: makafka
   #   restart: always
   #   environment:
-  #     # KAFKA_LISTENERS: LISTENER_DOCKER_INTERNAL://0.0.0.0:19092,LISTENER_DOCKER_EXTERNAL://0.0.0.0:9092
-  #     # KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://kafka:9092
-
-  #     KAFKA_LISTENERS: LISTENER_DOCKER_INTERNAL://0.0.0.0:19092,LISTENER_DOCKER_EXTERNAL://0.0.0.0:9092
-  #     KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://makafka:9092
-
-  #     KAFKA_ADVERTISED_HOST_NAME: makafka
-
-  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
-  #     KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,LISTENER_DOCKER_INTERNAL://makafka:9093
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LISTENER_DOCKER_INTERNAL:PLAINTEXT
+  #     KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,LISTENER_DOCKER_INTERNAL://0.0.0.0:9093
   #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_ADVERTISED_HOST_NAME: makafka
+  #     KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
   #     KAFKA_BROKER_ID: 1
   #     KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
   #     KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
   #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
   #   ports:
   #     - "9092:9092"
+  #     - "9093:9093"  # Они могут быть также проброшены внешне, если необходимо
   #   volumes:
   #     - ./.kafka-data:/var/lib/kafka/data
   #   depends_on:
   #     - zookeeper
-  kafka:
-    image: wurstmeister/kafka:latest
-    container_name: makafka
-    restart: always
-    environment:
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,LISTENER_DOCKER_INTERNAL://makafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LISTENER_DOCKER_INTERNAL:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,LISTENER_DOCKER_INTERNAL://0.0.0.0:9093
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_HOST_NAME: makafka
-      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
-      KAFKA_BROKER_ID: 1
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9092:9092"
-      - "9093:9093"  # Они могут быть также проброшены внешне, если необходимо
-    volumes:
-      - ./.kafka-data:/var/lib/kafka/data
-    depends_on:
-      - zookeeper
 
 
 

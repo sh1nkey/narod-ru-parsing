@@ -32,6 +32,7 @@ func NewServiceCheck(text string, params interfaces.CheckParamser) {
 	data := LettersDTO{
 		Letters: text,
 	}
+	log.Info().Msgf("Отправляем на проверку текст %s", text)
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		log.Err(err).Msg("Ошибка маршалинга")
@@ -57,7 +58,7 @@ func NewServiceCheck(text string, params interfaces.CheckParamser) {
 	}
 
 	if resp.StatusCode == http.StatusNoContent {
-		log.Info().Msgf("код: %d, на текст %s запрос успешно\n", resp.StatusCode, url)
+		log.Info().Msgf("Проверка в БД. %s %s", resp.StatusCode, text)
 		resp.Body.Close()
 
 		go params.Parse(text)

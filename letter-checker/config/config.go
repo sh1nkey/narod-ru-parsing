@@ -228,7 +228,7 @@ func Load(filename string) *Config {
 
 	err = loadCommandLineOverrides(config)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to load configurations")
+		log.Fatal().Err(err).Msg("failed to load command line configurations")
 	}
 
 	return config

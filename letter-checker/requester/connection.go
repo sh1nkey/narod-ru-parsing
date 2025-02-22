@@ -43,10 +43,10 @@ type CassandraChecker struct {
 }
 
 func (cc *CassandraChecker) Init(cfg *config.Config) {
-	host := cfg.Db.Host
+	host := cfg.Db.Host.Value
 	log.Info().Msgf("Подключаемся к Cassandra с URL=%s", host)
 
-	session := cc.createConn(host.Value, cfg.Db.Name.Value, cfg.Db.Pass.Value)
+	session := cc.createConn(host, cfg.Db.User.Value, cfg.Db.Pass.Value)
 	cc.createNamespace(session)
 	cc.createTable(session)
 
@@ -55,13 +55,23 @@ func (cc *CassandraChecker) Init(cfg *config.Config) {
 }
 
 func (cc *CassandraChecker) CheckExisted(letters string) bool {
-	err := cc.client.Query("INSERT INTO cass_keyspace.cass_table (letters) VALUES (?)", letters).Exec()
-    if err != nil {
-        log.Err(err).Msgf("Такой уже есть в БД... letters=%s", letters)
-		return false
+    query := "INSERT INTO cass_keyspace.cass_table (letters) VALUES (?) IF NOT EXISTS"
+
+    var existingLetters string
+
+    // Используем ScanCAS для обработки результата INSERT ... IF NOT EXISTS
+    if applied, err := cc.client.Query(query, letters).ScanCAS(&existingLetters); err != nil {
+        log.Err(err).Msgf("Ошибка при добавлении в БД letters=%s", letters)
+        return false
+    } else if !applied {
+        log.Warn().Msgf("Такой уже есть в БД... letters=%s", existingLetters)
+        return false
     }
-	return true
+
+    log.Info().Msgf("Буквы %s добавлены в БД :)", letters)
+    return true
 }
+
 
 func (cc *CassandraChecker)Close() {
 	cc.client.Close()
@@ -70,7 +80,7 @@ func (cc *CassandraChecker)Close() {
 
 func (cc *CassandraChecker) createConn(host string, username string, password string ) *gocql.Session {
 	cluster := gocql.NewCluster(host)
-	cluster.Consistency = gocql.Quorum
+	cluster.Consistency = gocql.One
 	cluster.ProtoVersion = 4
 	cluster.ConnectTimeout = time.Second * 10
 	cluster.Authenticator = gocql.PasswordAuthenticator{Username: username, Password: password, AllowedAuthenticators: []string {"com.instaclustr.cassandra.auth.InstaclustrPasswordAuthenticator"}} //you will need to allow the use of the Instaclustr Password Authenticator.
@@ -82,7 +92,7 @@ func (cc *CassandraChecker) createConn(host string, username string, password st
 }
 
 func (cc *CassandraChecker) createNamespace(sess *gocql.Session) {
-	err := sess.Query("CREATE KEYSPACE IF NOT EXISTS cass_keyspace WITH REPLICATION = {'class' : 'SimpleStratecy', 'replication_factor':2};").Exec() 
+	err := sess.Query("CREATE KEYSPACE IF NOT EXISTS cass_keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};").Exec() 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Не удалось создать неймспейс")
 	}
