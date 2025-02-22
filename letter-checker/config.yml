@@ -10,11 +10,10 @@ log:
   structured: false
 
 db:
-  name: cass
+  host: cass
   port: 7000
   username: cass
   password: cass
-  host: cass
   clean: false
   logLevel: warn
 

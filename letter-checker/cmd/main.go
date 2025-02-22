@@ -18,6 +18,8 @@ import (
 )
 
 func main() {
+	time.Sleep(30 * time.Second)
+
 	start := time.Now()
 	cfg := config.Load("config")
 
@@ -27,6 +29,8 @@ func main() {
 
 	repo := requester.CassandraChecker{}
 	repo.Init(cfg)
+	
+		
 	defer repo.Close()
 
 	service := requester.NewCheckerService(&repo)

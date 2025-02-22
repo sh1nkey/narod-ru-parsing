@@ -47,7 +47,7 @@ func CheckIfWebPageExist(text string, params interfaces.CheckParamser) {
 		htmlData := string(html)
 		go params.Save(text, &htmlData)
 
-		log.Info().Msgf("код: %d, на текст %s запрос успешно\n", resp.StatusCode, text)
+		log.Info().Msgf("Проверка существования. %s %s", resp.StatusCode, text)
 
 	} else {
 		time.Sleep(150 * time.Millisecond)
