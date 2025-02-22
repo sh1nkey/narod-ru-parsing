@@ -3,7 +3,6 @@ package code
 import (
 	"io"
 	"net/http"
-	"parser/interfaces"
 	"time"
 
 	"github.com/corpix/uarand"
@@ -12,15 +11,12 @@ import (
 
 
 
-func CheckIfWebPageExist(text string, params interfaces.CheckParamser) {
-	log.Info().Msg("Запускаем проверку существования веб-страниц")
+func CheckIfWebPageExist(text string) (string, string, bool) {
 	log.Info().Msgf("забрали текст %s", text)
 
-
 	time.Sleep(300 * time.Millisecond)
-	url := "https://" + text + ".narod.ru" // Замените на нужный URL
+	url := "https://" + text + ".narod.ru"
 
-	// Отправляем GET-запрос
 	time.Sleep(150 * time.Millisecond)
 
 
@@ -42,16 +38,19 @@ func CheckIfWebPageExist(text string, params interfaces.CheckParamser) {
 		defer resp.Body.Close() 
 		if err != nil {
 			log.Err(err).Msg("Ошибка чтения тела ответа")
-			return
+			return url, "", false
 		}
 		htmlData := string(html)
-		go params.Save(text, &htmlData)
+
 
 		log.Info().Msgf("Проверка существования. %s %s", resp.StatusCode, text)
+		return url, htmlData, true
 
-	} else {
-		time.Sleep(150 * time.Millisecond)
-		log.Printf("Получен код состояния: %d, на текст %s запрос не удалось выполнить успешно\n", resp.StatusCode, text)
-	}
+	} 
+
+	time.Sleep(150 * time.Millisecond)
+	log.Printf("Получен код состояния: %d, на текст %s запрос не удалось выполнить успешно\n", resp.StatusCode, text)
+
+	return url, "", false
 
 }

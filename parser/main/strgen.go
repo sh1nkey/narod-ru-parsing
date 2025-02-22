@@ -1,8 +1,7 @@
-package code
+package main
 
 import (
 	"math/rand"
-	"parser/interfaces"
 
 	"time"
 	"unsafe"
@@ -17,7 +16,7 @@ const (
 
 var src = rand.NewSource(time.Now().UnixNano())
 
-func RandStringBytesMaskImprSrcUnsafe(n int, conf interfaces.CheckParamser) {
+func RandStringBytesMaskImprSrcUnsafe(n int, conf *checkParams, chanLet chan string) {
 	for {
 		time.Sleep(20 * time.Millisecond)
 		b := make([]byte, n)
@@ -32,6 +31,6 @@ func RandStringBytesMaskImprSrcUnsafe(n int, conf interfaces.CheckParamser) {
 			cache >>= letterIdxBits
 			remain--
 		}
-		go conf.Check(*(*string)(unsafe.Pointer(&b)))
+		go conf.Check(*(*string)(unsafe.Pointer(&b)), chanLet)
 	}
 }

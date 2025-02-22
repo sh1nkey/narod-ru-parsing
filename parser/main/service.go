@@ -1,33 +1,36 @@
 package main
 
-import (
-	"parser/interfaces"
-)
+import "strings"
+
+type checker func(text string, host string, chanLet chan string)
+type parser func(text string) (url string, html string, exists bool)
+type saverUnexisting func(text string, host string)
+type saverExisting func(url string, html *string, host string)
 
 type checkParams struct {
-	checker     interfaces.Checker
-	saver       interfaces.Saver
-	parser      interfaces.Parse
-	hostChecker string
-	hostWriter  string
+	check          checker
+	parse          parser
+	saveUnexisting saverUnexisting
+	saveExisting   saverExisting
+	hostCheck      string
+	hostExistWrite string
 }
 
-func (c *checkParams) Check(text string) {
-	c.checker(text, c)
+func (cp *checkParams) Check(text string, chanLet chan string) {
+	go cp.check(text, cp.hostCheck, chanLet)
 }
 
-func (c *checkParams) Save(text string, html *string) {
-	c.saver(text, html, c.hostChecker)
-}
+func (cp *checkParams) ManageParsed(chanLet chan string) {
+	letters := <- chanLet
 
-func (c *checkParams) Parse(text string) {
-	c.parser(text, c)
-}
+	url, html, exists := cp.parse(letters)
 
-func (c *checkParams) GetCheckHostUrl() string {
-	return "http://" + c.hostChecker + ":8083/api/v1/check/save"
-}
+	if exists {
+		go cp.saveExisting(url, &html, cp.hostExistWrite)
+		return
+	}
+	url = strings.TrimPrefix(url, "http://")
+	url = strings.TrimSuffix(url, ".narod.ru")
 
-func (c *checkParams) GetSaveHostUrl() string {
-	return "http://" + c.hostWriter + ":8080/api/v1/narod/save"
+	go cp.saveUnexisting(url, cp.hostCheck)
 }
