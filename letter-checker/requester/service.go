@@ -1,30 +1,33 @@
 package requester
 
-
 type Checker interface {
-	Check(letters string) int
+	ReadOne(letters string) int
+	WriteOne(letters string)
 }
 
 func NewCheckerService(repo CheckerRepo) Checker {
-	return  &сheckerService{repo: repo}
+	return &сheckerService{repo: repo}
 }
-
 
 type сheckerService struct {
 	repo CheckerRepo
 }
 
-
-const SuccessWriteStatusCode = 204
-const FailedWriteStatusCode = 409
+const NotFountStatus = 204
+const FountStatus = 409
 
 const MaxRetry = 10
-func (cs *сheckerService) Check(letters string) int {
-	isSuccess := cs.repo.CheckExisted(letters)
 
-	if isSuccess == true {
-		return SuccessWriteStatusCode
+func (cs *сheckerService) ReadOne(letters string) int {
+	isSuccess := cs.repo.ReadOne(letters)
+
+	if isSuccess {
+		return NotFountStatus
 	}
-	return FailedWriteStatusCode
+	return FountStatus
 
+}
+
+func (cs *сheckerService) WriteOne(letters string) {
+	cs.repo.WriteOne(letters)
 }

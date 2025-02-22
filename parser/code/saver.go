@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"os"
-	"sync"
 
 	"github.com/corpix/uarand"
 	"github.com/rs/zerolog/log"
@@ -30,7 +28,7 @@ type LettersDTO struct {
 
 func WriteToDb(url string, html *string, host string) {
 
-	log.Info().Msgf("Отправляем текст %s", url)
+	//log.Info().Msgf("Отправляем текст %s", url)
 	data := UrlHtmlReqDTO{
 		Url: "https://" + url + ".narod.ru",
 		Html: *html,
@@ -67,18 +65,18 @@ func WriteToDb(url string, html *string, host string) {
 }
 
 
-// Работа с файлом
-func writeToFile(text string, html *string, wg *sync.WaitGroup) {
-	defer wg.Done()
+// // Работа с файлом
+// func writeToFile(text string, html *string, wg *sync.WaitGroup) {
+// 	defer wg.Done()
 
-	f, err := os.OpenFile("t.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Err(err).Msg("couldn't open file")
-	}
-	if _, err := f.Write([]byte("\n" + "https://" + text + ".narod.ru")); err != nil {
-		log.Err(err).Msg("couldn't wrtie to file")
-	}
-	if err := f.Close(); err != nil {
-		log.Err(err).Msg("couldn't close file")
-	}
-}
+// 	f, err := os.OpenFile("t.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+// 	if err != nil {
+// 		log.Err(err).Msg("couldn't open file")
+// 	}
+// 	if _, err := f.Write([]byte("\n" + "https://" + text + ".narod.ru")); err != nil {
+// 		log.Err(err).Msg("couldn't wrtie to file")
+// 	}
+// 	if err := f.Close(); err != nil {
+// 		log.Err(err).Msg("couldn't close file")
+// 	}
+// }

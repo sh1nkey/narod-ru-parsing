@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	start := time.Now()
 	cfg := config.Load("config")
@@ -27,11 +27,9 @@ func main() {
 	printLogHeader(cfg)
 	cfg.Print()
 
-	repo := requester.CassandraChecker{}
+	repo := requester.MongoChecker{}
 	repo.Init(cfg)
 	
-		
-	defer repo.Close()
 
 	service := requester.NewCheckerService(&repo)
 	r := api.ConfigureRouter(service)

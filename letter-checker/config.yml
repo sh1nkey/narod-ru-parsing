@@ -10,10 +10,10 @@ log:
   structured: false
 
 db:
-  host: cass
-  port: 7000
-  username: cass
-  password: cass
+  host: mongo
+  port: 27017
+  user: mongo
+  pass: mongo
   clean: false
   logLevel: warn
 

@@ -30,26 +30,20 @@ services:
     ports:
       - "8083:8080"  
     depends_on:
-      - cassandra
+      - mongo
 
 
 
-  cassandra:
-    image: cassandra:latest  
-    container_name: cass
+  mongo:
+    image: mongo:latest 
+    container_name: mongo  
     ports:
-      - "9042:9042"  # Порт для CQL (Cassandra Query Language)
-      - "7000:7000"  # Порт для межузлового общения (по умолчанию)
-      - "7001:7001"  # Защищённый порт для межузлового общения (SSL)
+      - "27017:27017"  
     volumes:
-      - ./.cassandra_data:/var/lib/cassandra  # Для постоянных данных
+      - ./.mongo_data:/data/db  
     environment:
-      CASSANDRA_CLUSTER_NAME: "MyCassandraCluster"  # Имя кластера
-      CASSANDRA_SEEDS: "cassandra"  # Узел семян (можно настроить для кластеров)
-      CASSANDRA_RACK: "rack1"  # Рак
-      CASSANDRA_DC: "dc1"  # Цепочка репликации
-
-
+      MONGO_INITDB_ROOT_USERNAME: mongo  
+      MONGO_INITDB_ROOT_PASSWORD: mongo  
 
 
   # html-parser:
